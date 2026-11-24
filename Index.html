@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Contagem de Estoque</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:#fff;color:#000;font:13px Arial,Helvetica,sans-serif}
+header{background:#f3f3f3;border-bottom:1px solid #bfbfbf;padding:8px 12px}
+h1{font-size:15px;margin:0 0 6px;color:#217346}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+button,select,input{font:inherit;color:#000}
+button{background:#fff;border:1px solid #bfbfbf;border-radius:3px;padding:5px 10px;cursor:pointer}
+button.p{background:#217346;border-color:#217346;color:#fff}
+input[type=text],input[type=date],input[type=search],select{background:#fff;border:1px solid #bfbfbf;border-radius:3px;padding:5px 7px}
+main{padding:10px 12px}
+.panel{display:none;background:#f9f9f9;border:1px solid #bfbfbf;padding:10px;margin-bottom:10px}
+.panel.on{display:block}.panel h2{font-size:14px;margin:0 0 6px}.mu{color:#555;font-size:12px}
+#msg{margin:4px 0;font-size:12px}
+table.s{border-collapse:collapse;width:100%;min-width:880px}
+.s th,.s td{border:1px solid #c6c6c6;padding:0 4px;height:22px;white-space:nowrap}
+.s th{background:#d9d9d9;font-weight:bold;text-align:center;position:sticky;top:env(safe-area-inset-top,0px);z-index:2}
+.s th:first-child{width:330px}.s th.df{background:#fff;color:#217346;width:70px}
+.s td.p{text-align:left}.s td.n{text-align:right}
+.s tr.z td{background:#dedede}
+.s tr.g td{background:#fff;border-color:#fff}.s tr.g td:first-child{background:#d9d9d9;border-color:#c6c6c6;font-weight:bold;text-align:center}
+.s input{width:100%;box-sizing:border-box;border:0;background:transparent;text-align:right;padding:0 2px;height:20px;font:inherit}
+.s input:focus{outline:2px solid #217346;background:#fff}
+.s td.d{text-align:center;font-weight:bold}
+.s tr td.d.z{background:#00b0f0}.s tr td.d.s{background:#c6efce;color:#006100}.s tr td.d.m{background:#ffc7ce;color:#9c0006}
+.tabs{display:flex;gap:4px;margin:8px 0}.tabs button{font-weight:bold}.tabs button.on,.sg.on{background:#217346;color:#fff;border-color:#217346}
+#sel{position:fixed;inset:0;background:#fff;z-index:20;overflow:auto;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(12px + env(safe-area-inset-bottom,0px))}.si{display:flex;gap:8px;align-items:center;padding:7px 4px;border-bottom:1px solid #e5e5e5;cursor:pointer}.si input{width:18px;height:18px}.gt2{display:flex;align-items:center;gap:8px;cursor:pointer;background:#d9d9d9;font-weight:bold;padding:6px 8px;margin-top:8px}.gt2 input{width:18px;height:18px}
+</style></head><body>
+<header>
+<h1>📦 Contagem de Estoque</h1>
+<div class="bar">
+<input type="date" id="dt" title="Data da contagem">
+<input type="search" id="q" placeholder="Buscar produto…">
+<label><input type="checkbox" id="od"> só divergências</label>
+<button data-p="ph2">📅 Histórico</button>
+<button data-p="pi">⬆ Importar do sistema</button>
+<button data-p="pp">🖨 Imprimir</button>
+<span id="cld" class="mu"></span> <button class="p" id="ex">⬇ Exportar .xlsx</button>
+<button data-p="pc">⚙ Mais</button>
+</div></header>
+<main>
+<div id="msg" class="mu"></div>
+
+<section class="panel" id="ph2"><h2>Histórico de contagens</h2><p class="mu">Cada data guarda os seus próprios dados (sistema, contagem e Restante), salvos automaticamente. Para lançar uma data retroativa, escolha a data no calendário do topo; para rever uma data já salva, clique em Abrir.</p><div id="hl"></div></section>
+<section class="panel" id="pi"><h2>Importar planilha exportada do sistema</h2>
+<p class="mu">Atualiza a coluna SISTEMA casando os produtos pelo nome. Os principais são atualizados; os demais itens com estoque diferente de zero vão automaticamente para a aba Restante. Aceita .xlsx, .xls e .csv.</p>
+<input type="file" id="fs" accept=".xlsx,.xls,.csv">
+<div id="map" style="margin-top:8px"></div></section>
+
+<section class="panel" id="pp"><h2>Imprimir para contar</h2><p class="mu" id="ph"></p>
+<div class="bar" style="margin-bottom:8px"><button class="sg on" data-s="p">Principais</button><button class="sg" data-s="r">Restante</button></div>
+<div class="bar"><select id="pm"><option value="b">Folha de contagem cega (sem estoque do sistema)</option><option value="s">Folha com estoque do sistema</option><option value="d">Relatório de divergências</option></select>
+<select id="pg"></select><button class="p" id="pb">🖨 Gerar folha para imprimir</button></div></section>
+
+<section class="panel" id="pc"><h2>Mais opções</h2>
+<p><b>Banco de dados na nuvem (Supabase)</b><br>URL do projeto: <input type="text" id="dbu" placeholder="https://xxxx.supabase.co" style="width:min(320px,100%)"> Chave pública (anon): <input type="text" id="dbk" placeholder="eyJ..." style="width:min(320px,100%)"><br><button id="dbs">Salvar e testar conexão</button> <button id="dbp">Enviar histórico deste navegador para a nuvem</button> <span class="mu">Deixe em branco para usar só o navegador.</span></p>
+<p><b>Colunas de ajuste</b> (separe por vírgula):<br><input type="text" id="cl" style="width:min(520px,100%)"> <button id="cs">Salvar colunas</button></p>
+<p><button id="zr">Zerar contagem e sistema (mantém os produtos)</button></p></section>
+
+<div id="tabs" class="tabs"></div>
+<div id="tb"></div>
+<p class="mu">Em LOJA digite somas como <b>336+2+121</b>. Diferença = contado (LOJA + ajustes) − SISTEMA. Seus dados ficam salvos neste navegador.</p>
+</main>
+<div id="sel" style="display:none"></div>
+<div id="pa"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const K='contagem_v1',$=i=>document.getElementById(i);
+let S=null;try{S=JSON.parse(localStorage.getItem(K))}catch(e){}
+const LIST=[["Heineken","Cervejas Lata Heineken 269ml"],["Heineken","Cervejas Lata Heineken Sleek 0.0 350ml"],["Heineken","Cervejas Lata Heineken Sleek 350ml"],["Heineken","Cervejas Lata Heineken Ultimate 350ml"],["Heineken","Cervejas Latão Heineken 473ml"],["Heineken","Cervejas Long Neck Heineken 0.0 330ml"],["Heineken","Cervejas Long Neck Heineken 330ml"],["Heineken","Cervejas Long Neck Heineken Shot 250ml"],["Heineken","Cervejas Long Neck Heineken Ultimate 330ml"],["Heineken","Chope 5L Chope Heineken 5L"],["Heineken","Chopes Chope Heineken 30L"],["Heineken","Chopes Chope Heineken 50L"],["Amstel","Cervejas Garrafa Amstel 600ml Retornável"],["Amstel","Cervejas Lata Amstel Fininha 269ml"],["Amstel","Cervejas Lata Amstel Sleek 350ml"],["Amstel","Cervejas Lata Amstel Ultra 269ml"],["Amstel","Cervejas Latão Amstel 473ml"],["Amstel","Cervejas Long Neck Amstel 355ml"],["Amstel","Cervejas Long Neck Amstel Ultra 275ml"],["Amstel","Chopes Chope Amstel 30L"],["Amstel","Chopes Chope Amstel 50L"],["Tabacaria","Tabacaria Grande Bic Unidade"],["Tabacaria","Tabacaria Normal Camel Filters Box"],["Tabacaria","Tabacaria Normal Camel Kretek Berry"],["Tabacaria","Tabacaria Normal Chesterfield Blue Terras Brasileiras"],["Tabacaria","Tabacaria Normal Chesterfield Box Azul"],["Tabacaria","Tabacaria Normal Chesterfield Remix Box"],["Tabacaria","Tabacaria Normal Chesterfield Terras Brasileiras"],["Tabacaria","Tabacaria Normal Chesterfield Vermelho Box"],["Tabacaria","Tabacaria Normal L&M Red First"],["Tabacaria","Tabacaria Normal Marlboro Forest Fusion"],["Tabacaria","Tabacaria Normal Marlboro Gold Box"],["Tabacaria","Tabacaria Normal Marlboro Gold Maço"],["Tabacaria","Tabacaria Normal Marlboro Ice Burst Box"],["Tabacaria","Tabacaria Normal Marlboro Tropical Fusion"],["Tabacaria","Tabacaria Normal Marlboro Vermelho Box"],["Tabacaria","Tabacaria Normal Marlboro Vermelho Maço"],["Tabacaria","Tabacaria Normal Winston Blue Hand Selected"],["Tabacaria","Tabacaria Normal Winston Classic hand selected"],["Tabacaria","Tabacaria Palheiro Paulistinha Menta"],["Tabacaria","Tabacaria Palheiro Paulistinha Série Ouro"],["Tabacaria","Tabacaria Palheiro Paulistinha Tradicional"],["Tabacaria","Tabacaria Pequeno Bic Unidade"],["Energéticos","Energéticos & Isotônicos Lata Monster 473ml"],["Energéticos","Energéticos & Isotônicos Lata Monster Mango Loco 473ml"],["Energéticos","Energéticos & Isotônicos Lata Monster Zero Sugar 473ml"],["Energéticos","Energéticos & Isotônicos Lata Red Bull 250ml"],["Energéticos","Energéticos & Isotônicos Lata Red Bull Sugar Free 250ml"],["Energéticos","Energéticos & Isotônicos Lata Red Bull Tropical 250ml"],["Energéticos","Energéticos & Isotônicos Lata Red Bull Zero 250ml"]];
+const COLS=["ELCIO","JULIO","BACHUR","UNIÃO","VITÃO","INVERSÃO","QUEBRA LOJA","TROCA"];
+{const ok=S&&S.v>=3,cur=S&&S.v===4,cols=cur&&S.cols&&S.cols.length?S.cols:COLS,old=new Map(ok?(S.items||[]).map(i=>[i.n,i]):[]);
+S={v:4,hist:(ok&&S.hist)||{},pend:(ok&&S.pend)||{},date:(ok&&S.date)||new Date().toISOString().slice(0,10),cols,rest:(ok&&S.rest||[]).map(o=>({...o,x:cols.map((_,k)=>(cur&&o.x&&o.x[k])||'')})),tab:'p',items:LIST.map(([g,n])=>{const o=old.get(n)||{};return{n,g,s:o.s||0,l:o.l||'',x:cols.map((_,k)=>(cur&&o.x&&o.x[k])||'')}})}}
+const DBC={url:'',key:''};
+const cfg=()=>{let c={};try{c=JSON.parse(localStorage.getItem('contagem_db')||'{}')}catch(e){}return{url:(c.url||DBC.url||'').trim().replace(/\/+$/,''),key:(c.key||DBC.key||'').trim()}};
+const cloud=()=>{const c=cfg();return !!(c.url&&c.key)};
+const cst=t=>{const e=document.getElementById('cld');if(e)e.textContent=t};
+const persist=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+async function api(path,opt={}){const c=cfg(),ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),10000);
+  try{const r=await fetch(c.url+'/rest/v1/'+path,{...opt,signal:ctl.signal,headers:{apikey:c.key,Authorization:'Bearer '+c.key,'Content-Type':'application/json',...(opt.headers||{})}});
+    if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,120));return r.status===204?null:await r.json().catch(()=>null)}finally{clearTimeout(tm)}}
+let pt=null;
+function push(){if(!cloud())return;S.pend=S.pend||{};S.pend[S.date]=1;clearTimeout(pt);pt=setTimeout(flush,900);cst('☁ salvando…')}
+async function flush(){if(!cloud())return;const ds=Object.keys(S.pend||{});
+  try{for(const d of ds){const r=S.hist[d];if(!r){delete S.pend[d];continue}
+    await api('contagens?on_conflict=data',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({data:d,conteudo:r,atualizado:new Date().toISOString()})});delete S.pend[d];S.cloudDates=[...new Set([...(S.cloudDates||[]),d])]}
+    cst('☁ salvo na nuvem')}catch(e){cst('⚠ sem conexão com a nuvem: salvo só neste navegador')}
+  persist()}
+async function startSync(){cst('☁ conectando…');
+  try{const rows=await api('contagens?select=data&order=data.desc&limit=400');S.cloudDates=(rows||[]).map(r=>r.data);
+    if(!(S.pend&&S.pend[S.date])){const cur=await api('contagens?data=eq.'+S.date+'&select=conteudo');if(cur&&cur[0]){S.hist[S.date]=cur[0].conteudo;applyDay(S.date,1)}}
+    await flush();cst('☁ conectado');drawHist()}catch(e){cst('⚠ sem conexão com a nuvem: '+e.message)}}
+const snap=()=>({cols:[...S.cols],items:S.items.filter(i=>i.s||i.l||i.x.some(Boolean)).map(i=>({n:i.n,s:i.s,l:i.l,x:i.x})),rest:S.rest});
+const save=()=>{const sn=snap();if(sn.items.length||sn.rest.length){S.hist[S.date]=sn;push()}else delete S.hist[S.date];try{localStorage.setItem(K,JSON.stringify(S))}catch(e){msg('Não foi possível salvar: armazenamento do navegador cheio. Exclua datas antigas no Histórico.',1)}};
+const norm=s=>String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+const ev=v=>{let s=String(v==null?'':v).replace(/^=/,'').replace(/,/g,'.').trim();if(!s)return 0;if(!/^[\d+\-*\/().\s]+$/.test(s))return NaN;try{const r=Function('"use strict";return ('+s+')')();return isFinite(r)?r:NaN}catch(e){return NaN}};
+const fm=n=>isNaN(n)?'?':String(n);
+const num=v=>{if(typeof v==='number')return v;let s=String(v).trim();if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');const n=parseFloat(s);return isNaN(n)?null:n};
+const cnt=it=>ev(it.l)+it.x.reduce((a,v)=>a+ev(v),0);
+const dif=it=>cnt(it)-(+it.s||0);
+const msg=(t,bad)=>{$('msg').textContent=t;$('msg').style.color=bad?'var(--ng)':'var(--mu)'};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let PS='p';const L=()=>S.tab==='r'?S.rest:S.items,pl=()=>PS==='r'?S.rest:S.items;const groups=(l=L())=>[...new Set(l.map(i=>i.g))];
+function disp(v){const s=String(v==null?'':v);if(!/[+\-*\/]/.test(s.replace(/^[-=]/,'')))return s;const r=ev(s);return isNaN(r)?s:String(r)}
+function dcls(d){return isNaN(d)?'m':d===0?'z':d>0?'s':'m'}
+function dset(el,d){el.className='d '+dcls(d);el.textContent=isNaN(d)?'?':String(d)}
+function render(){
+  $('dt').value=S.date;$('cl').value=S.cols.join(', ');
+  const q=norm($('q').value),od=$('od').checked,nc=S.cols.length+4;
+  let h='<table class="s"><thead><tr><th>PRODUTO</th><th>SISTEMA</th><th>LOJA</th>'+S.cols.map(c=>'<th>'+esc(c)+'</th>').join('')+'<th class="df">DIFER</th></tr></thead><tbody>';
+  groups().forEach(g=>{
+    const rows=L().map((it,i)=>[it,i]).filter(([it])=>it.g===g&&(!q||norm(it.n).includes(q))&&(!od||dif(it)!==0));
+    if(!rows.length)return;
+    h+='<tr class="g"><td>'+esc(g.toUpperCase())+'</td><td colspan="'+(nc-1)+'"></td></tr>';
+    rows.forEach(([it,i],r)=>{const d=dif(it);
+      h+='<tr'+(r%2?' class="z"':'')+'><td class="p">'+esc(it.n)+'</td><td class="n">'+(+it.s||0)+'</td><td><input data-i="'+i+'" data-k="l" value="'+esc(disp(it.l))+'" inputmode="decimal" autocomplete="off"></td>';
+      S.cols.forEach((c,k)=>h+='<td><input data-i="'+i+'" data-k="'+k+'" value="'+esc(disp(it.x[k]))+'" inputmode="decimal" autocomplete="off"></td>');
+      h+='<td class="d '+dcls(d)+'" id="d'+i+'">'+(isNaN(d)?'?':d)+'</td></tr>'});
+  });
+  $('tb').innerHTML=L().length?h+'</tbody></table>':'<p class="mu">'+(S.tab==='r'?'Nenhum item. Importe o estoque geral (⬆): os produtos com estoque diferente de zero que não são principais aparecem aqui.':'Nenhum produto.')+'</p>';
+  drawHist();fillPg();$('tabs').innerHTML='<button data-t="p" class="'+(S.tab==='p'?'on':'')+'">Principais ('+S.items.length+')</button><button data-t="r" class="'+(S.tab==='r'?'on':'')+'">Restante ('+S.rest.length+')</button>';
+}
+$('tb').addEventListener('input',e=>{const t=e.target,i=+t.dataset.i;if(isNaN(i))return;const it=L()[i];
+  if(t.dataset.k==='l')it.l=t.value;else it.x[+t.dataset.k]=t.value;dset($('d'+i),dif(it));save()});
+$('tb').addEventListener('focusin',e=>{const t=e.target;if(t.tagName!=='INPUT')return;const it=L()[+t.dataset.i];t.value=t.dataset.k==='l'?it.l:(it.x[+t.dataset.k]||'');t.select()});
+$('tb').addEventListener('focusout',e=>{const t=e.target;if(t.tagName!=='INPUT')return;const it=L()[+t.dataset.i];t.value=disp(t.dataset.k==='l'?it.l:it.x[+t.dataset.k])});
+function fillPg(){const r=PS==='r';$('pg').style.display=r?'none':'';$('ph').textContent=typeof claude==='undefined'?'A janela de impressão abre direto, sem baixar arquivo.':'Neste link o navegador não permite imprimir direto: ele gera um arquivo. Para imprimir sem baixar, use o arquivo contagem.html no PC.';$('pb').textContent=r?'Escolher produtos e imprimir':(typeof claude==='undefined'?'🖨 Imprimir':'🖨 Gerar folha para imprimir');$('pg').innerHTML='<option value="">Todas as folhas</option>'+SH.map((s,i)=>'<option value="'+i+'">'+esc(s.join(' + '))+'</option>').join('')}
+$('tabs').onclick=e=>{const t=e.target.dataset.t;if(t){S.tab=t;PS=t;document.querySelectorAll('.sg').forEach(b=>b.classList.toggle('on',b.dataset.s===PS));render()}};
+document.querySelectorAll('.sg').forEach(b=>b.onclick=()=>{PS=b.dataset.s;document.querySelectorAll('.sg').forEach(x=>x.classList.toggle('on',x===b));fillPg()});
+['q','od'].forEach(i=>$(i).addEventListener('input',render));
+$('dt').addEventListener('change',e=>{if(e.target.value)setDate(e.target.value);else e.target.value=S.date});
+document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{const p=$(b.dataset.p),o=p.classList.contains('on');document.querySelectorAll('.panel').forEach(x=>x.classList.remove('on'));if(!o)p.classList.add('on')});
+function readWb(f,cb){const r=new FileReader();r.onload=()=>{try{cb(XLSX.read(new Uint8Array(r.result),{type:'array'}))}catch(e){msg('Não consegui ler o arquivo: '+e.message,1)}};r.readAsArrayBuffer(f)}
+/* importar do sistema */
+let SR=null;
+$('fs').onchange=e=>{const f=e.target.files[0];if(!f)return;if(typeof XLSX==='undefined')return msg('Biblioteca de planilhas não carregou (sem internet?).',1);
+  readWb(f,wb=>{const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+    let hi=rows.findIndex(r=>r.filter(c=>String(c).trim()!=='').length>=2);if(hi<0)return msg('Planilha vazia.',1);
+    const hd=rows[hi].map((c,j)=>String(c).trim()||'Coluna '+(j+1));
+    const gu=(re,d)=>{const j=hd.findIndex(c=>re.test(c));return j<0?d:j};
+    const jn=gu(/produto|descri|nome|item/i,0),jq=gu(/estoque|saldo|qtd|quant|sistema/i,Math.min(1,hd.length-1));
+    SR={rows:rows.slice(hi+1)};const o=(s)=>hd.map((c,j)=>'<option value="'+j+'"'+(j===s?' selected':'')+'>'+esc(c)+'</option>').join('');
+    $('map').innerHTML='<div class="bar">Nome do produto: <select id="mn">'+o(jn)+'</select> Quantidade em estoque: <select id="mq">'+o(jq)+'</select> <button class="p" id="mo">Atualizar SISTEMA</button></div><div id="mr" style="margin-top:8px"></div>';
+    $('mo').onclick=applySys})};
+function applySys(){const jn=+$('mn').value,jq=+$('mq').value,m=new Map(),nm=new Map();
+  SR.rows.forEach(r=>{const n=norm(r[jn]),q=num(r[jq]);if(n&&q!==null){m.set(n,(m.get(n)||0)+q);if(!nm.has(n))nm.set(n,String(r[jn]).trim())}});
+  let ok=0,miss=[];const seen=new Set();
+  S.items.forEach(it=>{const k=norm(it.n);if(m.has(k)){it.s=m.get(k);seen.add(k);ok++}else{it.s=0;miss.push(it.n)}});
+  const mk=new Set(S.items.map(i=>norm(i.n))),oR=new Map(S.rest.map(i=>[norm(i.n),i]));
+  S.rest=[...m].filter(([k,q])=>!mk.has(k)&&q!==0).map(([k,q])=>{const o=oR.get(k)||{},n=nm.get(k);return{n,g:n.split(' ')[0],s:q,l:o.l||'',x:S.cols.map((_,j)=>(o.x&&o.x[j])||'')}}).sort((a,b)=>a.g.localeCompare(b.g,'pt')||a.n.localeCompare(b.n,'pt'));
+  const nw=[...m].filter(([k])=>!seen.has(k));let add=0;
+  
+  save();render();
+  $('mr').innerHTML='<b>'+ok+'</b> produtos atualizados'+(add?', <b>'+add+'</b> adicionados':'')+'.'+(miss.length?'<br><span style="color:var(--wr)">Na sua lista mas ausentes no arquivo ('+miss.length+', SISTEMA zerado):</span> '+esc(miss.join('; ')):'')+(S.rest.length?'<br><span class="mu"><b>'+S.rest.length+'</b> produtos com estoque foram para a aba Restante.</span>':'');
+  msg('SISTEMA atualizado.')}
+$('cs').onclick=()=>{const n=$('cl').value.split(',').map(s=>s.trim()).filter(Boolean);S.cols=n;[...S.items,...S.rest].forEach(it=>{it.x=n.map((_,k)=>it.x[k]||'')});save();render();msg('Colunas atualizadas.')};
+const ask=(id,fn)=>{const b=$(id),t=b.textContent;let w=0;b.onclick=()=>{if(!w){w=1;b.textContent='Clique de novo para confirmar';setTimeout(()=>{w=0;b.textContent=t},4000)}else{w=0;b.textContent=t;fn()}}};
+ask('zr',()=>{[...S.items,...S.rest].forEach(it=>{it.l='';it.s=0;it.x=S.cols.map(()=>'')});save();render();msg('Contagem e sistema zerados.')});
+/* imprimir */
+const SH=[['Heineken','Amstel'],['Tabacaria'],['Energéticos']];
+const short=n=>n.replace(/^(Energéticos & Isotônicos|Cervejas|Tabacaria|Chopes|Chope 5L)\s+/i,'');
+const card=(i,m)=>'<div class="cd"><div class="nm">'+esc(short(i.n))+'</div>'+(m==='s'?'<div class="sy">Sistema: '+(+i.s||0)+'</div>':'')+'</div>';
+const topH=(t,sub)=>'<div class="top"><div><h1>'+t+'</h1><div class="sub">'+esc(sub)+'</div></div><div class="fl"><div>Contador<i></i></div><div>Conferente<i></i></div></div></div>';
+function sheetHtml(gs,m,fx){let b='';
+  gs.forEach(([g,its])=>{const cols=Math.ceil(its.length/Math.ceil(its.length/12));
+    for(let k=0;k<its.length;k+=cols)b+='<div class="bd" style="grid-template-columns:repeat('+cols+',1fr)">'+its.slice(k,k+cols).map(i=>card(i,m)).join('')+'</div>'});
+  return '<div class="sh'+(fx?' fx':'')+'">'+b+'</div>'}
+function divHtml(gs,dt){let b='',n=0;
+  gs.forEach(([g,its])=>{its=its.filter(i=>dif(i)!==0);if(!its.length)return;n+=its.length;
+    b+='<section><div class="gh"><span>'+esc(g.toUpperCase())+'</span><span>'+its.length+' itens</span></div><table><thead><tr><th class="no">Nº</th><th>Produto</th><th class="w">Sistema</th><th class="w">Contado</th><th class="w">Diferença</th></tr></thead><tbody>'+its.map((i,k)=>{const d=dif(i);return '<tr><td class="no">'+(k+1)+'</td><td class="pn">'+esc(i.n)+'</td><td class="w">'+(+i.s||0)+'</td><td class="w">'+cnt(i)+'</td><td class="w '+(d>0?'up':'dn')+'">'+(d>0?'+':'')+d+'</td></tr>'}).join('')+'</tbody></table></section>'});
+  return topH('Relatório de divergências','Data: '+dt)+(n?b:'<p>Nenhuma divergência.</p>')+'<div class="ft">Diferença = contado (LOJA + ajustes) − estoque do sistema.</div>'}
+async function pr(sel){const m=$('pm').value,dt=S.date.split('-').reverse().join('/');let sheets=[];
+  if(PS==='r'){if(!sel||!sel.length)return msg('Nenhum produto selecionado.',1);sheets=[['Restante',groups(sel).map(g=>[g,sel.filter(i=>i.g===g)])]]}
+  else{const v=$('pg').value;SH.forEach((names,k)=>{if(v!==''&&+v!==k)return;const gs=names.map(g=>[g,S.items.filter(i=>i.g===g)]).filter(x=>x[1].length);if(gs.length)sheets.push([names.join(' + '),gs])})}
+  if(!sheets.length)return msg('Nada para imprimir.',1);
+  const b=m==='d'?divHtml(sheets.flatMap(s=>s[1]),dt):sheets.map(([t,gs])=>sheetHtml(gs,m,PS==='r')).join('');
+  const css='*{box-sizing:border-box}body{font:11pt Arial,Helvetica,sans-serif;color:#111;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #217346;padding-bottom:3mm;margin-bottom:4mm}h1{margin:0;font-size:17pt;color:#217346}.sub{color:#555;margin-top:1mm}.fl{display:flex;gap:6mm}.fl div{font-size:9pt;color:#555;width:48mm}.fl i{display:block;border-bottom:1px solid #111;height:6mm}section{margin-bottom:6mm}.gh{display:flex;justify-content:space-between;background:#217346;color:#fff;font-weight:bold;padding:1.5mm 3mm;margin-top:3mm;break-after:avoid}table{width:100%;border-collapse:collapse}th{background:#e5e7eb;font-size:9pt;text-align:left;padding:2mm;border:1px solid #9ca3af}td{border:1px solid #9ca3af;padding:0 2mm;height:9mm;font-size:10.5pt}tr{break-inside:avoid}thead{display:table-header-group}tbody tr:nth-child(even) td{background:#f3f4f6}.no{width:9mm;text-align:center;color:#666}.w{width:22mm;text-align:right}.pn{font-weight:600}.up{color:#047857;font-weight:bold}.dn{color:#b91c1c;font-weight:bold}.ft{margin-top:4mm;font-size:9pt;color:#666}.sh+.sh{break-before:page}.bd{display:grid;border-left:1px solid #6b7280;border-top:1px solid #6b7280;break-inside:avoid;height:94mm;margin-bottom:3mm}.fx .bd{height:62mm}.cd{border-right:1px solid #6b7280;border-bottom:1px solid #6b7280;display:flex;flex-direction:column}.nm{background:#e5e7eb;font-weight:bold;font-size:8pt;height:15mm;line-height:1.15;overflow:hidden;text-align:center;display:flex;align-items:center;justify-content:center;padding:0 1mm;border-bottom:1px solid #6b7280}.sy{font-size:7.5pt;color:#555;text-align:center}'+(m==='d'?'@page{size:A4;margin:12mm}':'@page{size:A4 landscape;margin:8mm}'),
+  doc='<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Folha de contagem</title><style>'+css+'</style></head><body>'+b+'<script>onload=function(){setTimeout(function(){print()},400)}<\/script></body></html>',
+  fn='FOLHA_'+(PS==='r'?'RESTANTE':'PRINCIPAIS')+'_'+S.date+'.html',data=new Blob([doc],{type:'text/html'});
+  if(typeof claude==='undefined'){const f=document.createElement('iframe');f.style.cssText='position:fixed;width:0;height:0;border:0;right:0;bottom:0';f.srcdoc=doc;document.body.appendChild(f);setTimeout(()=>f.remove(),120000);return msg('Enviado para impressão.')}
+  try{const d=await claude.use('downloads');if(d){await d.save({filename:fn,data});return msg('Abra o arquivo baixado: a tela de impressão abre sozinha.')}}catch(e){if(e&&e.code==='declined')return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(data);a.download=fn;a.click()}
+/* escolher produtos do Restante */
+const SEL=new Set();
+function selCount(){$('sp').textContent='🖨 Imprimir selecionados ('+S.rest.filter(i=>SEL.has(i.n)).length+')'}
+function selList(){const q=norm($('sq').value);let h='';
+  groups(S.rest).forEach(g=>{const its=S.rest.filter(i=>i.g===g&&(!q||norm(i.n).includes(q)));if(!its.length)return;
+    const ns=its.filter(i=>SEL.has(i.n)).length;h+='<label class="gt2"><input type="checkbox" data-g="'+esc(g)+'" data-s="'+(ns===its.length?2:ns?1:0)+'"'+(ns===its.length?' checked':'')+'><span style="flex:1">'+esc(g.toUpperCase())+'</span><span class="mu">'+its.length+' itens</span></label>'+its.map(i=>'<label class="si"><input type="checkbox" data-n="'+esc(i.n)+'"'+(SEL.has(i.n)?' checked':'')+'><span style="flex:1">'+esc(i.n)+'</span><span class="mu">sistema: '+(+i.s||0)+'</span></label>').join('')});
+  $('sl').innerHTML=h||'<p class="mu">Nenhum item no Restante. Importe o estoque geral (⬆).</p>';document.querySelectorAll('#sl input[data-g]').forEach(c=>{c.indeterminate=c.dataset.s==='1'});selCount()}
+function openSel(){const el=$('sel');el.style.display='block';
+  el.innerHTML='<div style="font-size:17px;font-weight:bold;margin-bottom:8px">Restante: escolha o que vai contar</div><div class="bar" style="margin-bottom:8px"><input type="search" id="sq" placeholder="Buscar produto…"><button id="sa">Marcar todos os visíveis</button><button id="sn">Limpar seleção</button><button class="p" id="sp"></button><button id="sc">Fechar</button></div><div id="sl"></div>';
+  $('sq').oninput=selList;
+  $('sl').onchange=e=>{const t=e.target,g=t.dataset.g;if(g!=null){const q=norm($('sq').value);S.rest.filter(i=>i.g===g&&(!q||norm(i.n).includes(q))).forEach(i=>t.checked?SEL.add(i.n):SEL.delete(i.n));selList();return}const n=t.dataset.n;if(n==null)return;t.checked?SEL.add(n):SEL.delete(n);selList()};
+  $('sa').onclick=()=>{document.querySelectorAll('#sl input[data-n]').forEach(c=>SEL.add(c.dataset.n));selList()};
+  $('sn').onclick=()=>{SEL.clear();selList()};
+  $('sc').onclick=()=>{el.style.display='none'};
+  $('sp').onclick=()=>pr(S.rest.filter(i=>SEL.has(i.n)));
+  selList()}
+$('pb').onclick=()=>PS==='r'?openSel():pr();
+/* exportar */
+$('ex').onclick=async()=>{if(typeof XLSX==='undefined')return msg('Biblioteca de planilhas não carregou.',1);
+  const n=S.cols.length,L=k=>XLSX.utils.encode_col(k),dc=3+n,wb=XLSX.utils.book_new(),sheet=(list,nm)=>{const ws={};let r=0;
+  const put=(R,C,v,f)=>{const a=XLSX.utils.encode_cell({r:R,c:C});ws[a]=typeof v==='number'?{t:'n',v,f}:{t:'s',v}; if(f===undefined)delete ws[a].f};
+  const hdr=()=>{['PRODUTO','SISTEMA','LOJA',...S.cols,'DIFER'].forEach((h,k)=>put(r,k,h));r++};
+  hdr();let first=true;
+  groups(list).forEach(g=>{if(!first){r++;put(r,0,'PRODUTO');r++}first=false;
+    list.filter(i=>i.g===g).forEach(it=>{put(r,0,it.n);put(r,1,+it.s||0);
+      const lv=ev(it.l);if(/[+\-*\/]/.test(String(it.l).replace(/^[-=]/,'')))put(r,2,isNaN(lv)?0:lv,String(it.l).replace(/^=/,''));else put(r,2,isNaN(lv)?0:lv);
+      it.x.forEach((v,k)=>{if(String(v).trim()!=='')put(r,3+k,isNaN(ev(v))?0:ev(v),/[+\-*\/]/.test(String(v).replace(/^[-=]/,''))?String(v).replace(/^=/,''):undefined)});
+      put(r,dc,dif(it),'SUM(C'+(r+1)+':'+L(dc-1)+(r+1)+')-B'+(r+1));r++})});
+  ws['!ref']='A1:'+L(dc)+r;ws['!cols']=[{wch:55},{wch:10},{wch:18},...S.cols.map(()=>({wch:12})),{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws,nm)};sheet(S.items,'CONTAGEM');if(S.rest.length)sheet(S.rest,'RESTANTE');
+  const data=new Blob([XLSX.write(wb,{type:'array',bookType:'xlsx'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),fn='CONTAGEM_'+S.date+'.xlsx';
+  try{const d=await claude.use('downloads');if(d){await d.save({filename:fn,data});return msg('Arquivo exportado.')}}catch(e){if(e&&e.code==='declined')return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(data);a.download=fn;a.click()};
+function applyDay(d,quiet){S.date=d;const r=S.hist[d],old=new Map(r?r.items.map(i=>[i.n,i]):[]);if(r&&r.cols)S.cols=[...r.cols];
+  S.items=LIST.map(([g,n])=>{const o=old.get(n)||{};return{n,g,s:o.s||0,l:o.l||'',x:S.cols.map((_,k)=>(o.x&&o.x[k])||'')}});
+  S.rest=r?r.rest.map(x=>({...x})):[];S.tab='p';PS='p';SEL.clear();persist();render();
+  if(!quiet)msg(r?'Data aberta: '+d.split('-').reverse().join('/')+'.':'Data sem dados salvos: '+d.split('-').reverse().join('/')+'. O que você digitar será salvo nela.')}
+async function setDate(d){save();
+  if(cloud()&&!(S.pend&&S.pend[d])){try{cst('☁ carregando…');const rows=await api('contagens?data=eq.'+d+'&select=conteudo');if(rows&&rows[0])S.hist[d]=rows[0].conteudo;cst('☁ conectado')}catch(e){cst('⚠ sem conexão com a nuvem: usando dados deste navegador')}}
+  applyDay(d)}
+function drawHist(){const ds=[...new Set([...Object.keys(S.hist),...(S.cloudDates||[])])].sort().reverse(),f=d=>d.split('-').reverse().join('/');
+  $('hl').innerHTML=ds.length?'<table class="s" style="min-width:0;width:auto"><thead><tr><th>Data</th><th>Principais</th><th>Restante</th><th></th></tr></thead><tbody>'+ds.map(d=>{const r=S.hist[d]||{items:[],rest:[],nuvem:1};return '<tr'+(d===S.date?' class="z"':'')+'><td>'+f(d)+(d===S.date?' (aberta)':'')+'</td><td>'+(r.nuvem?'na nuvem':r.items.length+' itens com dados')+'</td><td>'+(r.nuvem?'':r.rest.length+' itens')+'</td><td><button data-o="'+d+'">Abrir</button> <button data-x="'+d+'">Excluir</button></td></tr>'}).join('')+'</tbody></table>':'<p class="mu">Nenhuma data salva ainda. Tudo que você digitar é salvo na data escolhida.</p>'}
+$('hl').onclick=e=>{const b=e.target,o=b.dataset.o,x=b.dataset.x;
+  if(o)setDate(o);
+  else if(x){if(b.dataset.w){delete S.hist[x];if(cloud())api('contagens?data=eq.'+x,{method:'DELETE'}).catch(()=>{});S.cloudDates=(S.cloudDates||[]).filter(z=>z!==x);if(S.pend)delete S.pend[x];if(x===S.date){S.items.forEach(i=>{i.s=0;i.l='';i.x=S.cols.map(()=>'')});S.rest=[]}save();render()}else{b.dataset.w='1';b.textContent='Confirmar exclusão?';setTimeout(()=>{b.dataset.w='';b.textContent='Excluir'},3000)}}};
+$('dbu').value=cfg().url;$('dbk').value=cfg().key;
+$('dbs').onclick=async()=>{try{localStorage.setItem('contagem_db',JSON.stringify({url:$('dbu').value.trim(),key:$('dbk').value.trim()}))}catch(e){}
+  if(!cloud()){cst('');return msg('Nuvem desligada (sem URL/chave). Usando só o navegador.')}
+  try{await api('contagens?select=data&limit=1');msg('Conexão com o banco OK.');startSync()}catch(e){cst('⚠ falha na conexão');msg('Não conectou: '+e.message,1)}};
+$('dbp').onclick=async()=>{if(!cloud())return msg('Configure a nuvem primeiro.',1);S.pend=S.pend||{};Object.keys(S.hist).forEach(d=>S.pend[d]=1);await flush();msg('Histórico enviado para a nuvem.')};
+render();
+if(cloud())startSync();
+</script></body></html>
