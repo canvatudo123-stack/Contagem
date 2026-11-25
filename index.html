@@ -58,7 +58,7 @@ table.s{border-collapse:collapse;width:100%;min-width:880px}
 <select id="pg"></select><button class="p" id="pb">🖨 Gerar folha para imprimir</button></div></section>
 
 <section class="panel" id="pc"><h2>Mais opções</h2>
-<p id="dbcfg"><b>Banco de dados na nuvem (Supabase)</b><br>URL do projeto: <input type="text" id="dbu" placeholder="https://xxxx.supabase.co" style="width:min(320px,100%)"> Chave pública (anon): <input type="text" id="dbk" placeholder="eyJ..." style="width:min(320px,100%)"><br><button id="dbs">Salvar e testar conexão</button> <button id="dbp">Enviar histórico deste navegador para a nuvem</button> <span class="mu">Deixe em branco para usar só o navegador.</span></p>
+<p id="dbcfg"><b>Banco de dados na nuvem (Supabase)</b><br>URL do projeto: <input type="text" id="dbu" placeholder="https://xxxx.supabase.co" style="width:min(320px,100%)"> Chave pública (anon): <input type="text" id="dbk" placeholder="eyJ..." style="width:min(320px,100%)"><br><button id="dbs">Salvar e testar conexão</button> <button id="dbp">Enviar histórico deste navegador para a nuvem</button> <span class="mu">Deixe em branco para usar só o navegador.</span><br><span class="mu">Para valer em todos os navegadores, copie esta linha e cole no código do index.html no lugar da linha que começa com const DBC:</span><input type="text" id="dbl" readonly style="width:100%;margin-top:4px"></p>
 <p><b>Colunas de ajuste</b> (separe por vírgula):<br><input type="text" id="cl" style="width:min(520px,100%)"> <button id="cs">Salvar colunas</button></p>
 <p><button id="zr">Zerar contagem e sistema (mantém os produtos)</button></p></section>
 
@@ -231,9 +231,10 @@ function drawHist(){const ds=[...new Set([...Object.keys(S.hist),...(S.cloudDate
 $('hl').onclick=e=>{const b=e.target,o=b.dataset.o,x=b.dataset.x;
   if(o)setDate(o);
   else if(x){if(b.dataset.w){delete S.hist[x];if(cloud())api('contagens?data=eq.'+x,{method:'DELETE'}).catch(()=>{});S.cloudDates=(S.cloudDates||[]).filter(z=>z!==x);if(S.pend)delete S.pend[x];if(x===S.date){S.items.forEach(i=>{i.s=0;i.l='';i.x=S.cols.map(()=>'')});S.rest=[]}save();render()}else{b.dataset.w='1';b.textContent='Confirmar exclusão?';setTimeout(()=>{b.dataset.w='';b.textContent='Excluir'},3000)}}};
-$('dbu').value=cfg().url;$('dbk').value=cfg().key;
+function updLine(){const c=cfg();$('dbl').value="const DBC={url:'"+c.url+"',key:'"+c.key+"'};"}
+$('dbu').value=cfg().url;$('dbk').value=cfg().key;updLine();
 $('dbs').onclick=async()=>{try{localStorage.setItem('contagem_db',JSON.stringify({url:$('dbu').value.trim(),key:$('dbk').value.trim()}))}catch(e){}
-  if(!cloud()){cst('');return msg('Nuvem desligada (sem URL/chave). Usando só o navegador.')}
+  updLine();if(!cloud()){cst('');return msg('Nuvem desligada (sem URL/chave). Usando só o navegador.')}
   try{await api('contagens?select=data&limit=1');msg('Conexão com o banco OK.');startSync()}catch(e){cst('⚠ falha na conexão');msg('Não conectou: '+e.message,1)}};
 $('dbp').onclick=async()=>{if(!cloud())return msg('Configure a nuvem primeiro.',1);S.pend=S.pend||{};Object.keys(S.hist).forEach(d=>S.pend[d]=1);await flush();msg('Histórico enviado para a nuvem.')};
 render();
