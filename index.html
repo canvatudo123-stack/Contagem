@@ -76,7 +76,7 @@ const LIST=[["Heineken","Cervejas Garrafa Heineken 600ml Retornável"],["Heineke
 const COLS=["ELCIO","JULIO","BACHUR","UNIÃO","VITÃO","INVERSÃO","QUEBRA LOJA","TROCA"];
 {const ok=S&&S.v>=3,cur=S&&S.v===4,cols=cur&&S.cols&&S.cols.length?S.cols:COLS,old=new Map(ok?(S.items||[]).map(i=>[i.n,i]):[]);
 S={v:4,hist:(ok&&S.hist)||{},pend:(ok&&S.pend)||{},date:(ok&&S.date)||TD(),cols,rest:(ok&&S.rest||[]).map(o=>({...o,x:cols.map((_,k)=>(cur&&o.x&&o.x[k])||'')})),tab:'p',items:LIST.map(([g,n])=>{const o=old.get(n)||{};return{n,g,s:o.s||0,l:o.l||'',x:cols.map((_,k)=>(cur&&o.x&&o.x[k])||'')}})}}
-const DBC={url:'',key:''};
+const DBC={url:'https://nfnwatjngwobzixxllzw.supabase.co',key:'sb_publishable_syzV-t7NOwk4GR4_VGwcBw_PM1gd210'};
 const cfg=()=>{let c={};try{c=JSON.parse(localStorage.getItem('contagem_db')||'{}')}catch(e){}return{url:(c.url||DBC.url||'').trim().replace(/\/+$/,''),key:(c.key||DBC.key||'').trim()}};
 const cloud=()=>{const c=cfg();return !!(c.url&&c.key)};
 const cst=t=>{const e=document.getElementById('cld');if(e)e.textContent=t};
