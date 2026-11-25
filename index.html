@@ -58,7 +58,7 @@ table.s{border-collapse:collapse;width:100%;min-width:880px}
 <select id="pg"></select><button class="p" id="pb">🖨 Gerar folha para imprimir</button></div></section>
 
 <section class="panel" id="pc"><h2>Mais opções</h2>
-<p><b>Banco de dados na nuvem (Supabase)</b><br>URL do projeto: <input type="text" id="dbu" placeholder="https://xxxx.supabase.co" style="width:min(320px,100%)"> Chave pública (anon): <input type="text" id="dbk" placeholder="eyJ..." style="width:min(320px,100%)"><br><button id="dbs">Salvar e testar conexão</button> <button id="dbp">Enviar histórico deste navegador para a nuvem</button> <span class="mu">Deixe em branco para usar só o navegador.</span></p>
+<p id="dbcfg"><b>Banco de dados na nuvem (Supabase)</b><br>URL do projeto: <input type="text" id="dbu" placeholder="https://xxxx.supabase.co" style="width:min(320px,100%)"> Chave pública (anon): <input type="text" id="dbk" placeholder="eyJ..." style="width:min(320px,100%)"><br><button id="dbs">Salvar e testar conexão</button> <button id="dbp">Enviar histórico deste navegador para a nuvem</button> <span class="mu">Deixe em branco para usar só o navegador.</span></p>
 <p><b>Colunas de ajuste</b> (separe por vírgula):<br><input type="text" id="cl" style="width:min(520px,100%)"> <button id="cs">Salvar colunas</button></p>
 <p><button id="zr">Zerar contagem e sistema (mantém os produtos)</button></p></section>
 
@@ -80,9 +80,10 @@ const DBC={url:'',key:''};
 const cfg=()=>{let c={};try{c=JSON.parse(localStorage.getItem('contagem_db')||'{}')}catch(e){}return{url:(c.url||DBC.url||'').trim().replace(/\/+$/,''),key:(c.key||DBC.key||'').trim()}};
 const cloud=()=>{const c=cfg();return !!(c.url&&c.key)};
 const cst=t=>{const e=document.getElementById('cld');if(e)e.textContent=t};
+const showCfg=v=>{const e=document.getElementById('dbcfg');if(e)e.style.display=v?'':'none'};
 const persist=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
 async function api(path,opt={}){const c=cfg(),ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),10000);
-  try{const r=await fetch(c.url+'/rest/v1/'+path,{...opt,signal:ctl.signal,headers:{apikey:c.key,Authorization:'Bearer '+c.key,'Content-Type':'application/json',...(opt.headers||{})}});
+  try{const r=await fetch(c.url+'/rest/v1/'+path,{...opt,signal:ctl.signal,headers:{apikey:c.key,...(c.key.startsWith('eyJ')?{Authorization:'Bearer '+c.key}:{}),'Content-Type':'application/json',...(opt.headers||{})}});
     if(!r.ok)throw new Error(r.status+' '+(await r.text()).slice(0,120));return r.status===204?null:await r.json().catch(()=>null)}finally{clearTimeout(tm)}}
 let pt=null;
 function push(){if(!cloud())return;S.pend=S.pend||{};S.pend[S.date]=1;clearTimeout(pt);pt=setTimeout(flush,900);cst('☁ salvando…')}
@@ -94,7 +95,7 @@ async function flush(){if(!cloud())return;const ds=Object.keys(S.pend||{});
 async function startSync(){cst('☁ conectando…');
   try{const rows=await api('contagens?select=data&order=data.desc&limit=400');S.cloudDates=(rows||[]).map(r=>r.data);
     if(!(S.pend&&S.pend[S.date])){const cur=await api('contagens?data=eq.'+S.date+'&select=conteudo');if(cur&&cur[0]){S.hist[S.date]=cur[0].conteudo;applyDay(S.date,1)}}
-    await flush();cst('☁ conectado');drawHist()}catch(e){cst('⚠ sem conexão com a nuvem: '+e.message)}}
+    await flush();cst('☁ conectado');drawHist();showCfg(location.hash==='#admin')}catch(e){cst('⚠ sem conexão com a nuvem');showCfg(true);const p=document.getElementById('pc');if(p)p.classList.add('on');msg('Não foi possível conectar ao banco: '+e.message+'. Confira a URL e a chave em ⚙ Mais.',1)}}
 const snap=()=>({cols:[...S.cols],items:S.items.filter(i=>i.s||i.l||i.x.some(Boolean)).map(i=>({n:i.n,s:i.s,l:i.l,x:i.x})),rest:S.rest});
 const save=()=>{const sn=snap();if(sn.items.length||sn.rest.length){S.hist[S.date]=sn;push()}else delete S.hist[S.date];try{localStorage.setItem(K,JSON.stringify(S))}catch(e){msg('Não foi possível salvar: armazenamento do navegador cheio. Exclua datas antigas no Histórico.',1)}};
 const norm=s=>String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
@@ -236,5 +237,6 @@ $('dbs').onclick=async()=>{try{localStorage.setItem('contagem_db',JSON.stringify
   try{await api('contagens?select=data&limit=1');msg('Conexão com o banco OK.');startSync()}catch(e){cst('⚠ falha na conexão');msg('Não conectou: '+e.message,1)}};
 $('dbp').onclick=async()=>{if(!cloud())return msg('Configure a nuvem primeiro.',1);S.pend=S.pend||{};Object.keys(S.hist).forEach(d=>S.pend[d]=1);await flush();msg('Histórico enviado para a nuvem.')};
 render();
+showCfg(!cloud()||location.hash==='#admin');
 if(cloud())startSync();
 </script></body></html>
